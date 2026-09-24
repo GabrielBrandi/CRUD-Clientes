@@ -1,0 +1,32 @@
+name: crud-clientes
+
+services:
+  banco:
+    image: firebirdsql/firebird:3.0.14@sha256:13208a06d768e957e029f3a544c658bfb1c1031cdf322f4e5fa9bb9368ce6015
+    restart: unless-stopped
+    environment:
+      FIREBIRD_ROOT_PASSWORD: ${SENHA_ADMINISTRADOR:?Execute scripts/iniciar-banco.ps1}
+      FIREBIRD_USER: CRUD_APP
+      FIREBIRD_PASSWORD: ${SENHA_BANCO:?Execute scripts/iniciar-banco.ps1}
+      FIREBIRD_DATABASE: clientes.fdb
+      FIREBIRD_DATABASE_DEFAULT_CHARSET: UTF8
+      TZ: America/Sao_Paulo
+    ports:
+      - "127.0.0.1:${PORTA_BANCO:-3050}:3050"
+    volumes:
+      - dados-banco:/var/lib/firebird/data
+      - ./banco:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          echo 'SELECT COUNT(*) FROM CLIENTE;' |
+          /opt/firebird/bin/isql -b -q -u "$$FIREBIRD_USER" -p "$$FIREBIRD_PASSWORD"
+          localhost:/var/lib/firebird/data/clientes.fdb > /dev/null 2>&1
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+volumes:
+  dados-banco:
